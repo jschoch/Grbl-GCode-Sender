@@ -72,7 +72,7 @@ namespace CNC.Controls.Probing
         private List<string> _program = new List<string>();
         private List<Position> _positions = new List<Position>();
         private List<Position> _machine = new List<Position>();
-        private CoordMode _cmode = CoordMode.G92;
+        private CoordMode _cmode = CoordMode.G10;
         private Edge _edge = Edge.None;
         private Center _center = Center.None;
         private int _coordinateSystem = 0;

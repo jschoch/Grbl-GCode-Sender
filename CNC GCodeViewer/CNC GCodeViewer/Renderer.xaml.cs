@@ -66,7 +66,8 @@ namespace CNC.Controls.Viewer
         None,
         Cut,
         Rapid,
-        Retract
+        Retract,
+        Probe
     }
 
     public static class ex3d
@@ -90,9 +91,10 @@ namespace CNC.Controls.Viewer
         BoundingBoxWireFrameVisual3D _bbox;
         ModelVisual3D _axes = new ModelVisual3D();
         Point3D _startposition = new Point3D();
+        Point3D _endposition = new Point3D();
         Point3D _limits = new Point3D();
         Point3D _toolposition = new Point3D();
-        Point3DCollection _toolorigin, _cutlines, _rapidlines, _retractlines;
+        Point3DCollection _toolorigin, _cutlines, _rapidlines, _retractlines, _probelines;
 
         public void Clear()
         {
@@ -114,6 +116,17 @@ namespace CNC.Controls.Viewer
                 _startposition.Y = position.Y;
                 _startposition.Z = position.Z;
                 OnPropertyChanged(nameof(StartPosition));
+            }
+        }
+
+        public void SetEndPosition(Point3D position)
+        {
+            if (!position.Equals(_endposition))
+            {
+                _endposition.X = position.X;
+                _endposition.Y = position.Y;
+                _endposition.Z = position.Z;
+                OnPropertyChanged(nameof(EndPosition));
             }
         }
 
@@ -149,7 +162,11 @@ namespace CNC.Controls.Viewer
         public Point3DCollection CutLines { get { return _cutlines; } set { _cutlines = value; OnPropertyChanged(); } }
         public Point3DCollection RapidLines { get { return _rapidlines; } set { _rapidlines = value; OnPropertyChanged(); } }
         public Point3DCollection RetractLines { get { return _retractlines; } set { _retractlines = value; OnPropertyChanged(); } }
+
+        public Point3DCollection ProbeLines { get { return _retractlines; } set { _retractlines = value; OnPropertyChanged(); } }
         public Point3D StartPosition { get { return _startposition; } }
+
+        public Point3D EndPosition { get { return _endposition; } }
         public Point3D Limits { get { return _limits; } }
     }
 
@@ -162,7 +179,7 @@ namespace CNC.Controls.Viewer
         private Vector3D delta0;  // (dx,dy,dz)
         private double minDistanceSquared, _minDistance;
 
-        bool _animateSubscribed = false;
+        bool _animateSubscribed = true;
         double[] offsets = new double[6] { 0d, 0d, 0d, 0d, 0d, 0d };
 
         public SolidColorBrush ToolBrush { get; set; } = Brushes.Red;
@@ -170,7 +187,7 @@ namespace CNC.Controls.Viewer
         public double TickSize { get; set; }
 
         private GrblViewModel model;
-        private bool _animateTool = false;
+        private bool _animateTool = true;
         private bool? isLatheMode = null;
         private bool isDiameterMode = false;
         private int cutCount;
@@ -180,6 +197,7 @@ namespace CNC.Controls.Viewer
         Point3DCollection rapidPoints = new Point3DCollection();
         Point3DCollection retractPoints = new Point3DCollection();
         Point3DCollection positionPoints = new Point3DCollection();
+        Point3DCollection probePoints = new Point3DCollection();
 
         TruncatedConeVisual3D tool;
 
@@ -246,7 +264,7 @@ namespace CNC.Controls.Viewer
 
         public int ArcResolution { get; set; } = 5;
         public double MinDistance { get { return _minDistance; } set { _minDistance = value; minDistanceSquared = _minDistance * _minDistance; } }
-        public bool ShowGrid { get; set; } = true;
+        public bool ShowGrid { get; set; } = false;
         public bool ShowAxes { get; set; } = true;
         public bool ShowBoundingBox { get; set; } = true;
         public bool ShowViewCube { get { return Machine.ShowViewCube; } set { Machine.ShowViewCube = value; } }
@@ -305,6 +323,7 @@ namespace CNC.Controls.Viewer
             linePoints.Clear();
             rapidPoints.Clear();
             retractPoints.Clear();
+            probePoints.Clear();
 
             if (Machine.BoundingBox != null)
                 viewport.Children.Remove(Machine.BoundingBox);
@@ -399,7 +418,7 @@ namespace CNC.Controls.Viewer
 
             if (ShowGrid)
             {
-                double wh, h, wm = bbox.SizeX % TickSize, w = Math.Ceiling(bbox.SizeX - bbox.SizeX % TickSize + TickSize * 2d);
+                double wh, h, wm = bbox.SizeX % TickSize, w = Math.Ceiling(bbox.SizeX - bbox.SizeX % TickSize + TickSize * 2d) ;
 
                 if (model.LatheMode == LatheMode.Disabled)
                 {
@@ -414,7 +433,7 @@ namespace CNC.Controls.Viewer
                         MajorDistance = TickSize,
                         Width = h,
                         Length = w,
-                        Thickness = 0.1d,
+                        Thickness = 0.05d,
                         Fill = AxisBrush
                     };
                 }
@@ -510,11 +529,11 @@ namespace CNC.Controls.Viewer
             GCodeEmulator emu = new GCodeEmulator(true);
 
             emu.SetStartPosition(Machine.StartPosition);
-
+            
             foreach (var cmd in emu.Execute(tokens))
             {
                 point0 = cmd.Start;
-
+                
                 switch (cmd.Token.Command)
                 {
                     case Commands.G0:
@@ -547,12 +566,18 @@ namespace CNC.Controls.Viewer
                     case Commands.G5:
                         DrawSpline(cmd.Token as GCSpline, point0.ToArray());
                         break;
+                    case Commands.G38_5:
+                        AddProbeMove(cmd.End);
+                        break;
                 }
             }
-
+            
             Machine.RapidLines = rapidPoints;
             Machine.CutLines = linePoints;
             Machine.RetractLines = retractPoints;
+            Machine.ProbeLines = probePoints;
+            //emu.SetStartPosition(Machine.ToolPosition);
+            Machine.SetEndPosition(emu.GetEndPosition());
 
             refreshCamera(bbox);
         }
@@ -630,6 +655,24 @@ namespace CNC.Controls.Viewer
             point0 = point;
         }
 
+        public void AddProbeMove(Point3D point)
+        {
+            if (cutCount > 1)
+            {
+                linePoints.Add(linePoints.Last());
+                linePoints.Add(point);
+            }
+
+            if (lastType == MoveType.Cut)
+                delta0 = new Vector3D(0d, 0d, 0d);
+
+            probePoints.Add(point0);
+            probePoints.Add(point);
+
+            cutCount = 0;
+            lastType = MoveType.Probe;
+            point0 = point;
+        }
         public void AddCutMove(Point3D point)
         {
             bool sameDir = false;

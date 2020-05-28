@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using CNC.Core;
 using CNC.GCode;
@@ -242,6 +243,11 @@ namespace CNC.Controls.Probing
                 probing.IsCompleted = true;
                 Grbl.Poller.SetState(AppConfig.Settings.Base.PollInterval);
             }
+        }
+    public string toString()
+        {
+           //return _program.Aggregate((i, j) => i + "\n" + j);
+            return String.Join("\n", _program);
         }
     }
 }

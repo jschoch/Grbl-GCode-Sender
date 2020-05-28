@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using CNC.Core;
@@ -69,12 +70,22 @@ namespace CNC.Controls.Probing
     {
         private AxisFlags axisflags = AxisFlags.None;
         private double[] af = new double[3];
+        private bool _preview = true;
+        private string _previewText = " This is da preview";
 
         public EdgeFinderControl()
         {
             InitializeComponent();
         }
 
+        public string PreviewText
+        {
+            get{ return _previewText; }            
+        }
+
+        //public static DependencyProperty PreviewTextProperty => _previewText;
+
+        
         private void start_Click(object sender, RoutedEventArgs e)
         {
             var probing = DataContext as ProbingViewModel;
@@ -234,8 +245,10 @@ namespace CNC.Controls.Probing
                     probing.Program.Add("G0Y" + probing.XYClearance.ToInvariantString());
                     break;
             }
-
+            
             probing.Program.Execute(true);
+           
+            
         }
 
         private void Probing_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -310,6 +323,179 @@ namespace CNC.Controls.Probing
         private void stop_Click(object sender, RoutedEventArgs e)
         {
             (DataContext as ProbingViewModel).Program.Cancel();
+        }
+
+        private void preview_Click(object sender, RoutedEventArgs e)
+        {
+            var probing = DataContext as ProbingViewModel;
+            if (!probing.ValidateInput())
+                return;
+
+            if (probing.ProbeEdge == Edge.None)
+            {
+                MessageBox.Show("Select edge or corner to probe by clicking on the relevant part of the image above.", "Edge finder", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                return;
+            }
+
+            if (!probing.Program.Init())
+                return;
+
+            probing.PropertyChanged += Probing_PropertyChanged;
+
+            //probing.Program.Add(string.Format("G91F{0}", probing.ProbeFeedRate.ToInvariantString()));
+            probing.Message = string.Empty;
+
+            Position offset_2 = new Position(probing.XYClearance * 2d, probing.XYClearance * 2d, 0d);
+
+            switch (probing.ProbeEdge)
+            {
+                case Edge.A:
+                    axisflags = AxisFlags.X | AxisFlags.Y;
+                    af[GrblConstants.X_AXIS] = af[GrblConstants.Y_AXIS] = 1d;
+                    probing.Program.Add("G0Y" + probing.Offset.ToInvariantString());
+                    probing.Program.Add("G0X-" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Z-" + probing.Depth.ToInvariantString());
+
+                    probing.Program.AddProbingAction(AxisFlags.X, false);
+
+                    probing.Program.Add("G0X-" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Z" + probing.Depth.ToInvariantString());
+                    probing.Program.Add("G0X" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0X" + probing.XYClearance.ToInvariantString() + "Y-" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Y-" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Z-" + probing.Depth.ToInvariantString());
+
+                    probing.Program.AddProbingAction(AxisFlags.Y, false);
+
+                    probing.Program.Add("G0Y-" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Z" + probing.Depth.ToInvariantString());
+                    probing.Program.Add("G0Y" + probing.XYClearance.ToInvariantString());
+                    break;
+
+                case Edge.B:
+                    axisflags = AxisFlags.X | AxisFlags.Y;
+                    af[GrblConstants.X_AXIS] = -1d; af[GrblConstants.Y_AXIS] = 1d;
+                    probing.Program.Add("G0Y" + probing.Offset.ToInvariantString());
+                    probing.Program.Add("G0X" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Z-" + probing.Depth.ToInvariantString());
+
+                    probing.Program.AddProbingAction(AxisFlags.X, true);
+
+                    probing.Program.Add("G0X" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Z" + probing.Depth.ToInvariantString());
+                    probing.Program.Add("G0X-" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0X-" + probing.XYClearance.ToInvariantString() + "Y-" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Y-" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Z-" + probing.Depth.ToInvariantString());
+
+                    probing.Program.AddProbingAction(AxisFlags.Y, false);
+
+                    probing.Program.Add("G0Y-" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Z" + probing.Depth.ToInvariantString());
+                    probing.Program.Add("G0Y" + probing.XYClearance.ToInvariantString());
+                    break;
+
+                case Edge.C:
+                    axisflags = AxisFlags.X | AxisFlags.Y;
+                    af[GrblConstants.X_AXIS] = af[GrblConstants.Y_AXIS] = -1d;
+                    probing.Program.Add("G0Y-" + probing.Offset.ToInvariantString());
+                    probing.Program.Add("G0X" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Z-" + probing.Depth.ToInvariantString());
+
+                    probing.Program.AddProbingAction(AxisFlags.X, true);
+
+                    probing.Program.Add("G0X" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Z" + probing.Depth.ToInvariantString());
+                    probing.Program.Add("G0X-" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0X-" + probing.XYClearance.ToInvariantString() + "Y" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Y" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Z-" + probing.Depth.ToInvariantString());
+
+                    probing.Program.AddProbingAction(AxisFlags.Y, true);
+
+                    probing.Program.Add("G0Y" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Z" + probing.Depth.ToInvariantString());
+                    probing.Program.Add("G0Y-" + probing.XYClearance.ToInvariantString());
+                    break;
+
+                case Edge.D:
+                    axisflags = AxisFlags.X | AxisFlags.Y;
+                    af[GrblConstants.X_AXIS] = 1d; af[GrblConstants.Y_AXIS] = -1d;
+                    probing.Program.Add("G0Y-" + probing.Offset.ToInvariantString());
+                    probing.Program.Add("G0X-" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Z-" + probing.Depth.ToInvariantString());
+
+                    probing.Program.AddProbingAction(AxisFlags.X, false);
+
+                    probing.Program.Add("G0X-" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Z" + probing.Depth.ToInvariantString());
+                    probing.Program.Add("G0X" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0X" + probing.XYClearance.ToInvariantString() + "Y" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Y" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Z-" + probing.Depth.ToInvariantString());
+
+                    probing.Program.AddProbingAction(AxisFlags.Y, true);
+
+                    probing.Program.Add("G0Y" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Z" + probing.Depth.ToInvariantString());
+                    probing.Program.Add("G0Y-" + probing.XYClearance.ToInvariantString());
+                    break;
+
+                case Edge.Z:
+                    axisflags = AxisFlags.Z;
+                    af[GrblConstants.Z_AXIS] = 1d;
+                    probing.Program.AddProbingAction(AxisFlags.Z, true);
+                    break;
+
+                case Edge.AD:
+                    axisflags = AxisFlags.X;
+                    af[GrblConstants.X_AXIS] = 1d;
+                    probing.Program.Add("G0X-" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Z-" + probing.Depth.ToInvariantString());
+                    probing.Program.AddProbingAction(AxisFlags.X, false);
+                    probing.Program.Add("G0X-" + probing.XYClearance.ToInvariantString());
+                    break;
+
+                case Edge.AB:
+                    axisflags = AxisFlags.Y;
+                    af[GrblConstants.Y_AXIS] = 1d;
+                    Console.Write("start\n");
+                    Position machineStart = probing.Grbl.MachinePosition;
+                    Position WCOStart = probing.Grbl.Position;
+                    //object startP = Machine.StartPosition;
+                    probing.Program.Add("G0Y-" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Z-" + probing.Depth.ToInvariantString());
+                    probing.Program.Add("G91");
+                    probing.Program.AddProbingAction(AxisFlags.Y, false);
+                    probing.Program.Add("G90");
+                    probing.Program.Add("G01Y" + WCOStart.Y.ToInvariantString());
+                    break;
+
+                case Edge.CB:
+                    axisflags = AxisFlags.X;
+                    af[GrblConstants.X_AXIS] = -1d;
+                    probing.Program.Add("G0X" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Z-" + probing.Depth.ToInvariantString());
+                    probing.Program.AddProbingAction(AxisFlags.X, true);
+                    probing.Program.Add("G0X" + probing.XYClearance.ToInvariantString());
+                    break;
+
+                case Edge.CD:
+                    axisflags = AxisFlags.Y;
+                    af[GrblConstants.Y_AXIS] = -1d;
+                    probing.Program.Add("G0Y" + probing.XYClearance.ToInvariantString());
+                    probing.Program.Add("G0Z-" + probing.Depth.ToInvariantString());
+                    probing.Program.AddProbingAction(AxisFlags.Y, true);
+                    probing.Program.Add("G0Y" + probing.XYClearance.ToInvariantString());
+                    break;
+            }
+            
+            _previewText = probing.Program.toString();
+            
+            previewTextBlock.Text = _previewText;
+            //PreviewText = probing.Program.toString();
+            Console.Write(_previewText);
+            probing.Program.Cancel();
         }
     }
 }

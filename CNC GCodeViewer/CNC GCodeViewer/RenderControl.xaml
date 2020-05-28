@@ -8,6 +8,7 @@
              d:DesignHeight="335" d:DesignWidth="400">
     <DockPanel HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
         <Button x:Name="button" DockPanel.Dock="Bottom" Content="Reset view" HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="75" Click="button_Click"/>
+        <Button x:Name="gridButton" DockPanel.Dock="Right" Content="Grid" HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="30" Click="gridButton_Click"/>
         <local:Renderer DockPanel.Dock="Top" x:Name="gcodeView"/>
     </DockPanel>
 </UserControl>

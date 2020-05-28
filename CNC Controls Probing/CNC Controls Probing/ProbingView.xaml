@@ -94,5 +94,6 @@
             <Run Text="Warning! Use with care - incorrect parameters may damage your probe! (NOTE: only lightly tested)" Foreground="Red" FontWeight="Bold"/>
             </TextBlock>
         </StackPanel>
+        
     </Grid>
 </UserControl>

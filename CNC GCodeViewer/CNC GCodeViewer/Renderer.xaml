@@ -14,7 +14,7 @@
                            AllowDrop="True" DragEnter="viewport_Drag" DragOver="viewport_Drag" DragLeave="viewport_Drag" Drop="viewport_Drop" ShowCoordinateSystem="True">
         <helix:HelixViewport3D.Camera>
             <PerspectiveCamera x:Name="camera"
-                        Position="0,100,0" 
+                        Position="10,100,0" 
                         LookDirection="0,-100,0" 
                         UpDirection="0,1,0.5" 
                         FieldOfView="61" 
@@ -26,9 +26,12 @@
 
             </helix:TruncatedConeVisual3D> <!-->
         <helix:LinesVisual3D Thickness="1" Color="Black" Points="{Binding Path=CutLines}"/>
-        <helix:LinesVisual3D Thickness="0.5" Color="LightPink" Points="{Binding Path=RapidLines}"/>
-        <helix:LinesVisual3D Thickness="0.5" Color="Green" Points="{Binding Path=RetractLines}"/>
+        <helix:LinesVisual3D Thickness="5" Color="Pink" Points="{Binding Path=RapidLines}"/>
+        <helix:LinesVisual3D Thickness="1" Color="Green" Points="{Binding Path=RetractLines}"/>
+        <helix:LinesVisual3D Thickness="5" Color="Red" Points="{Binding Path=ProbeLines}"/>
         <helix:LinesVisual3D Thickness="1.5" Color="Green" Points="{Binding Path=ToolOrigin}"/>
+        <helix:BillboardTextVisual3D Foreground="Black" Position="{Binding Path=StartPosition}" Text="Start"/>
+        <helix:BillboardTextVisual3D Foreground="Yellow" Position="{Binding Path=EndPosition}" Text="End"/>
         <!-->            <helix:GridLinesVisual3D binding?/> <!-->
     </helix:HelixViewport3D>
 </UserControl>

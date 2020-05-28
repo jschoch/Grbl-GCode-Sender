@@ -84,5 +84,10 @@ namespace CNC.Controls.Viewer
         {
             gcodeView.ResetView();
         }
+
+        private void gridButton_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            gcodeView.ShowGrid = !gcodeView.ShowGrid;
+        }
     }
 }

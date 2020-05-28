@@ -62,6 +62,7 @@ namespace CNC.Core
     {
         private bool canned, translate;
         private RunAction action;
+        private Point3D endPosition;
 
         public GCodeEmulator(bool translate = false) : base()
         {
@@ -71,6 +72,16 @@ namespace CNC.Core
         public void SetStartPosition(Point3D pos)
         {
             action.Start = pos;
+        }
+
+        public void SetEndPosition(Point3D pos)
+        {
+            endPosition = pos;
+        }
+
+        public Point3D GetEndPosition()
+        {
+            return endPosition;
         }
 
         public IEnumerable<RunAction> Execute(List<GCodeToken> Tokens)
@@ -248,7 +259,20 @@ namespace CNC.Core
                         }
                         break;
 
+                    // G38 to show probe moves
+                    case Commands.G38_2:
+                    case Commands.G38_3:
+                    case Commands.G38_4:
+                    case Commands.G38_5:
+                        {
+                            var motion = token as GCLinearMotion;
+                            setEndP(motion.Values, motion.AxisFlags);
+                            action.Token = new GCLinearMotion(Commands.G38_5, token.LineNumber, machinePos.Array, motion.AxisFlags);
+                        }
+                        break;
+
                     // G43: Tool Length Offset
+
                     case Commands.G43:
                         SetToolOffset(token as GCToolOffset);
                         break;
@@ -611,7 +635,7 @@ namespace CNC.Core
 
                 if(action.Token.Command != Commands.Undefined)
                     yield return action;
-
+                SetEndPosition(action.Start);
                 action.Start = action.End;
             }
         }
