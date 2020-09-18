@@ -493,7 +493,6 @@ namespace CNC.Controls.Probing
             _previewText = probing.Program.toString();
             
             previewTextBlock.Text = _previewText;
-            //PreviewText = probing.Program.toString();
             Console.Write(_previewText);
             probing.Program.Cancel();
         }

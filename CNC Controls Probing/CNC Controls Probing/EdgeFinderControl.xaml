@@ -165,7 +165,7 @@
             </Grid>
         </StackPanel>
         <StackPanel Grid.Column="1" Grid.Row="1" Margin="5,0,0,5" Orientation="Horizontal" HorizontalAlignment="Right">
-            <TextBlock x:Name="previewTextBlock" Text="{Binding Path=PreviewTextProperty}" />
+            <TextBox x:Name="previewTextBlock" Text="{Binding Path=PreviewTextProperty}" IsReadOnly="True" />
 
         </StackPanel>
         <StackPanel Margin="5,0,0,5" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Bottom" Height="Auto" Width="Auto">
